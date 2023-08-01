@@ -1,0 +1,131 @@
+import random
+
+
+class Space:
+    def __init__(self, width, height, num_hospitals):
+        self.width = width
+        self.height = height
+        self.num_hospitals = num_hospitals
+        self.houses = set()
+        self.hospitals = set()
+
+    def add_house(self, x, y):
+        """
+        Function which adds coordinates x, y of new house to set of house coordinates
+        """
+        if 0 < x < self.width and 0 < y < self.height:
+            self.houses.add((x, y))
+
+    def gen_hospital_candidates(self):
+        """
+        Function which generates coordinates which are free (currently no house and no hospital)
+        """
+        candidates = set()
+
+        # generate all coordinates in our space
+        for x in range(self.width):
+            for y in range(self.height):
+                candidates.add((x, y))
+
+        # remove coordinates where house or hospital is placed
+        for house in self.houses:
+            candidates.remove(house)
+        for hospital in self.hospitals:
+            candidates.remove(hospital)
+
+        return candidates
+
+    def get_neighbours(self, x, y):
+        """
+        Function to get all neighbour of x,y coordinate
+        """
+        directions = [1, 0, -1]
+        neighbours = set()
+
+        # generate neighbours of x,y in the space (remove coordinates, which are out of our space)
+        for dx in directions:
+            new_x = x + dx
+            if new_x > self.width - 1 or new_x < 0:
+                continue
+
+            for dy in directions:
+                new_y = y + dy
+                if new_y > self.height - 1 or new_y < 0:
+                    continue
+
+                neighbours.add((new_x, new_y))
+
+        # remove coordinates where already house or hospital is already placed
+        neighbours = neighbours.difference(self.hospitals)
+        neighbours = neighbours.difference(self.houses)
+
+        return neighbours
+
+    def get_cost(self, hospitals):
+        """
+        Function to get sum of distances house - closest hospital
+        """
+        cost = 0
+        # for all houses
+        for house in self.houses:
+            costs = []
+            # calculate distance to every hospital
+            for hospital in hospitals:
+                single_cost = abs(hospital[0] - house[0]) + abs(hospital[1] - house[1])
+                costs.append(single_cost)
+            # add distance to the closest hospital to the overall cost
+            cost += min(costs)
+        return cost
+
+    def hill_climb(self, maximum=None, log=False):
+        """
+        Function to get optimized placement of hospitals
+        """
+        count = 0
+        self.hospitals = set()
+
+        # draw random hospital coordinates
+        for i in range(self.num_hospitals):
+            self.hospitals.add(random.choice(list(self.gen_hospital_candidates())))
+
+        while maximum is None or count < maximum:
+            count += 1
+            best_neighbours = []
+            best_neighbour_cost = None
+
+            # iterate over every hospital
+            for hospital in self.hospitals:
+
+                # iterate over every neighbour of hospital
+                for new_loc in self.get_neighbours(*hospital):
+
+                    # substitute a iterated hospital for one of neighbours and calculate cost
+                    neighbour = self.hospitals.copy()
+                    neighbour.remove(hospital)
+                    neighbour.add(new_loc)
+
+                    cost = self.get_cost(neighbour)
+
+                    # if cost of new hospital placement is lower or there is no best cost
+                    # we have new best placement, if it is equal we add neighbour to "equal in cost" neighbours
+                    if best_neighbour_cost is None or cost < best_neighbour_cost:
+                        best_neighbour_cost = cost
+                        best_neighbours = [neighbour]
+                    elif best_neighbour_cost == cost:
+                        best_neighbours.append(neighbour)
+
+            # if best cost in that iteration is greater or equal, we should stop iterating
+            # otherwise we found betters set and we can continue with next iteration
+            if best_neighbour_cost >= self.get_cost(self.hospitals):
+                return self.hospitals
+            else:
+                if log:
+                    print(f"Found better solution with cost: {best_neighbour_cost}")
+                self.hospitals = random.choice(best_neighbours)
+
+
+space = Space(20, 10, 3)
+for i in range(15):
+    space.add_house(random.randint(0, 20), random.randint(0, 20))
+
+space.hill_climb(20, True)
