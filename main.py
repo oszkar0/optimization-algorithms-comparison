@@ -1,4 +1,5 @@
 import random
+import copy
 
 
 class Space:
@@ -99,7 +100,7 @@ class Space:
                 # iterate over every neighbour of hospital
                 for new_loc in self.get_neighbours(*hospital):
 
-                    # substitute a iterated hospital for one of neighbours and calculate cost
+                    # substitute an iterated hospital for one of neighbours and calculate cost
                     neighbour = self.hospitals.copy()
                     neighbour.remove(hospital)
                     neighbour.add(new_loc)
@@ -115,7 +116,7 @@ class Space:
                         best_neighbours.append(neighbour)
 
             # if best cost in that iteration is greater or equal, we should stop iterating
-            # otherwise we found betters set and we can continue with next iteration
+            # otherwise we found betters set, and we can continue with next iteration
             if best_neighbour_cost >= self.get_cost(self.hospitals):
                 return self.hospitals
             else:
@@ -123,9 +124,34 @@ class Space:
                     print(f"Found better solution with cost: {best_neighbour_cost}")
                 self.hospitals = random.choice(best_neighbours)
 
+    def random_restart_hill_climb(self, maximum, log=False):
+        best_hospital_placement_cost = None
+        best_hospital_placement = None
+        # perform hill climb algorithm maximum number of times
+        for i in range(maximum):
+            placement = self.hill_climb()
+            cost = self.get_cost(placement)
+            # if solution from latest hill climb is better than current then change, if not don't change
+            if best_hospital_placement_cost is None or cost < best_hospital_placement_cost:
+                best_hospital_placement = placement
+                best_hospital_placement_cost = cost
+                if log:
+                    print(f"Found new best state with cost: {cost}")
+            else:
+                if log:
+                    print(f"New found state cost: {cost}")
 
-space = Space(20, 10, 3)
+        #  save the best solution
+        self.hospitals = best_hospital_placement
+
+
+space0 = Space(20, 10, 3)
 for i in range(15):
-    space.add_house(random.randint(0, 20), random.randint(0, 20))
+    space0.add_house(random.randint(0, 20), random.randint(0, 20))
 
-space.hill_climb(20, True)
+space1 = copy.deepcopy(space0)
+
+print("1. HILL CLIMB\n")
+space0.hill_climb(20, True)
+print("2. HILL CLIMB RANDOM RESTART\n")
+space1.random_restart_hill_climb(20, True)
