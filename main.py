@@ -1,5 +1,6 @@
 import random
 import copy
+import math
 
 
 class Space:
@@ -144,14 +145,60 @@ class Space:
         #  save the best solution
         self.hospitals = best_hospital_placement
 
+    def simulated_annealing(self, max_temp, max_steps, log=False):
+        self.hospitals = set()
+        cost_deltas = []
+
+        # draw random hospital coordinates
+        for i in range(self.num_hospitals):
+            self.hospitals.add(random.choice(list(self.gen_hospital_candidates())))
+
+        for t in range(max_steps):
+            # calculate new "temperature" of our system
+            temp = max_temp / float(t + 1)
+
+            # draw random neighbour of current solution
+            random_hospital = random.choice(list(self.hospitals))
+            neighbours = self.get_neighbours(*random_hospital)
+            random_neighbour = random.choice(list(neighbours))
+
+            new_placement = self.hospitals.copy()
+            new_placement.remove(random_hospital)
+            new_placement.add(random_neighbour)
+
+            # calculate current delta cost
+            new_cost = self.get_cost(new_placement)
+            current_cost = self.get_cost(self.hospitals)
+            delta_cost = current_cost - new_cost
+
+            # if delta cost more than 0 change current state to better one
+            # if delta_cost is less or equal 0 then choose it with  probability math.exp(-1 / temp) (higher temp
+            # higher probability to choose worse solution)
+            if delta_cost > 0:
+                self.hospitals = new_placement
+                if log:
+                    print(f"Found and set better placement with cost: {new_cost}, delta cost is: {delta_cost}")
+            elif delta_cost <= 0 and random.random() < math.exp(-1 / temp):
+                self.hospitals = new_placement
+                if log:
+                    print(f"Found and set worse placement with cost: {new_cost}, delta cost is: {delta_cost}")
+            else:
+                if log:
+                    print(f"Found worse placement with cost: {new_cost}, delta cost is: {delta_cost}, but didn't set")
+
+        print(f"Final solution has cost: {self.get_cost(self.hospitals)}")
+
 
 space0 = Space(20, 10, 3)
 for i in range(15):
     space0.add_house(random.randint(0, 20), random.randint(0, 20))
 
 space1 = copy.deepcopy(space0)
+space2 = copy.deepcopy(space0)
 
 print("1. HILL CLIMB\n")
 space0.hill_climb(20, True)
 print("2. HILL CLIMB RANDOM RESTART\n")
 space1.random_restart_hill_climb(20, True)
+print("3. SIMULATED ANNEALING\n")
+space2.simulated_annealing(10, 100, True)
