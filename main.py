@@ -1,9 +1,16 @@
 import random
 import copy
 import math
+from PIL import Image, ImageDraw, ImageFont
+import os
 
 
 class Space:
+    # VISUALIZATION CONSTANTS
+    CELL_SIZE = 30
+    BOUNDARY_WIDTH = 2
+    BOTTOM_STRIPE_HEIGHT = 20
+
     def __init__(self, width, height, num_hospitals):
         self.width = width
         self.height = height
@@ -79,6 +86,57 @@ class Space:
             cost += min(costs)
         return cost
 
+    def visualize(self, name, iteration, cost):
+        width = self.width * Space.CELL_SIZE + (self.width - 1) * Space.BOUNDARY_WIDTH
+        height = self.height * Space.CELL_SIZE + (self.height - 1) * Space.BOUNDARY_WIDTH + Space.BOTTOM_STRIPE_HEIGHT
+
+        image = Image.new(mode="RGB", size=(width, height), color=(128, 128, 128))
+        hospital_image = Image.open("icons/hospital.png")
+        house_image = Image.open("icons/house.png")
+        f = ImageFont.truetype("arial.ttf", 15)
+
+        drawing = ImageDraw.Draw(image)
+
+        # draw horizontal lines
+        for i in range(self.height - 1):
+            x_0 = 0
+            y_0 = Space.CELL_SIZE + i * (Space.CELL_SIZE + Space.BOUNDARY_WIDTH)
+            x_1 = width
+            y_1 = y_0 + Space.BOUNDARY_WIDTH - 1
+            drawing.rectangle([(x_0, y_0), (x_1, y_1)], fill="#333333")
+
+        # draw vertical lines
+        for i in range(self.width - 1):
+            x_0 = Space.CELL_SIZE + i * (Space.CELL_SIZE + Space.BOUNDARY_WIDTH)
+            y_0 = 0
+            x_1 = x_0 + Space.BOUNDARY_WIDTH - 1
+            y_1 = height - 10
+            drawing.rectangle([(x_0, y_0), (x_1, y_1)], fill="#333333")
+
+        # put hospitals on the image
+        for hospital in self.hospitals:
+            x = hospital[0] * (Space.CELL_SIZE + Space.BOUNDARY_WIDTH)
+            y = hospital[1] * (Space.CELL_SIZE + Space.BOUNDARY_WIDTH)
+            image.paste(hospital_image, (x, y))
+
+        # put houses on the image
+        for house in self.houses:
+            x = house[0] * (Space.CELL_SIZE + Space.BOUNDARY_WIDTH)
+            y = house[1] * (Space.CELL_SIZE + Space.BOUNDARY_WIDTH)
+            image.paste(house_image, (x, y))
+
+        # put cost on the photo
+        drawing.rectangle([(0, height - Space.BOTTOM_STRIPE_HEIGHT), (width, height)], fill="#000000")
+        drawing.text((0, height - Space.BOTTOM_STRIPE_HEIGHT), f"COST: {cost}", (255, 255, 255), font=f)
+
+        # save image
+        folder_name = f"{name}"
+        if not os.path.exists(folder_name):
+            os.makedirs(folder_name)
+
+        file_name = f"{name}_{iteration}.png"
+        image.save(os.path.join(folder_name, file_name))
+
     def hill_climb(self, maximum=None, log=False):
         """
         Function to get optimized placement of hospitals
@@ -147,7 +205,6 @@ class Space:
 
     def simulated_annealing(self, max_temp, max_steps, log=False):
         self.hospitals = set()
-        cost_deltas = []
 
         # draw random hospital coordinates
         for i in range(self.num_hospitals):
@@ -191,7 +248,7 @@ class Space:
 
 space0 = Space(20, 10, 3)
 for i in range(15):
-    space0.add_house(random.randint(0, 20), random.randint(0, 20))
+    space0.add_house(random.randint(0, 20), random.randint(0, 10))
 
 space1 = copy.deepcopy(space0)
 space2 = copy.deepcopy(space0)
