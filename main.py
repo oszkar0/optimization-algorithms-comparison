@@ -137,7 +137,7 @@ class Space:
         file_name = f"{name}_{iteration}.png"
         image.save(os.path.join(folder_name, file_name))
 
-    def hill_climb(self, maximum=None, log=False):
+    def hill_climb(self, maximum=None, log=False, image_name=None):
         """
         Function to get optimized placement of hospitals
         """
@@ -149,7 +149,6 @@ class Space:
             self.hospitals.add(random.choice(list(self.gen_hospital_candidates())))
 
         while maximum is None or count < maximum:
-            count += 1
             best_neighbours = []
             best_neighbour_cost = None
 
@@ -181,9 +180,12 @@ class Space:
             else:
                 if log:
                     print(f"Found better solution with cost: {best_neighbour_cost}")
+                    self.visualize(image_name, count, best_neighbour_cost)
                 self.hospitals = random.choice(best_neighbours)
 
-    def random_restart_hill_climb(self, maximum, log=False):
+            count += 1
+
+    def random_restart_hill_climb(self, maximum, log=False, image_name=None):
         best_hospital_placement_cost = None
         best_hospital_placement = None
         # perform hill climb algorithm maximum number of times
@@ -196,6 +198,8 @@ class Space:
                 best_hospital_placement_cost = cost
                 if log:
                     print(f"Found new best state with cost: {cost}")
+                    if not image_name is None:
+                        self.visualize(image_name, i, cost)
             else:
                 if log:
                     print(f"New found state cost: {cost}")
@@ -203,7 +207,7 @@ class Space:
         #  save the best solution
         self.hospitals = best_hospital_placement
 
-    def simulated_annealing(self, max_temp, max_steps, log=False):
+    def simulated_annealing(self, max_temp, max_steps, log=False, image_name=None):
         self.hospitals = set()
 
         # draw random hospital coordinates
@@ -235,10 +239,14 @@ class Space:
                 self.hospitals = new_placement
                 if log:
                     print(f"Found and set better placement with cost: {new_cost}, delta cost is: {delta_cost}")
+                    if not image_name is None:
+                        self.visualize(image_name, t, new_cost)
             elif delta_cost <= 0 and random.random() < math.exp(-1 / temp):
                 self.hospitals = new_placement
                 if log:
                     print(f"Found and set worse placement with cost: {new_cost}, delta cost is: {delta_cost}")
+                    if not image_name is None:
+                        self.visualize(image_name, t, new_cost)
             else:
                 if log:
                     print(f"Found worse placement with cost: {new_cost}, delta cost is: {delta_cost}, but didn't set")
@@ -254,8 +262,8 @@ space1 = copy.deepcopy(space0)
 space2 = copy.deepcopy(space0)
 
 print("1. HILL CLIMB\n")
-space0.hill_climb(20, True)
+space0.hill_climb(20, True, "hill_climb_normal")
 print("2. HILL CLIMB RANDOM RESTART\n")
-space1.random_restart_hill_climb(20, True)
+space1.random_restart_hill_climb(20, True, "hill_climb_rndrs")
 print("3. SIMULATED ANNEALING\n")
-space2.simulated_annealing(10, 100, True)
+space2.simulated_annealing(10, 100, True, "sim_annealing")
